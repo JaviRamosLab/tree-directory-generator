@@ -1,0 +1,90 @@
+{
+  "name": "directory-tree-generator",
+  "version": "1.0.0",
+  "description": "A utility to generate visual representations of directory structures",
+  "main": "src/treeGenerator.js",
+  "scripts": {
+    "start": "node src/treeGenerator.js",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "node src/treeGenerator.js",
+    "build": "echo \"Build completed\"",
+    "lint": "echo \"No linting configured yet\"",
+    "format": "biome format --write .",
+    "format:check": "biome format --check .",
+    "lint:fix": "biome lint --write .",
+    "clean": "rimraf dist coverage .nyc_output",
+    "clean:deps": "rimraf node_modules package-lock.json",
+    "install:clean": "npm run clean:deps && npm install",
+    "security": "npm audit --audit-level high",
+    "security:fix": "npm audit fix"
+  },
+  "keywords": [
+    "directory",
+    "tree",
+    "generator",
+    "filesystem",
+    "visualizer",
+    "structure",
+    "folder",
+    "explorer",
+    "cli",
+    "directory-structure",
+    "tree-view",
+    "file-system-traversal"
+  ],
+  "homepage": "https://github.com/JaviRamosLab/tree-generator#readme",
+  "bugs": {
+    "url": "https://github.com/JaviRamosLab/tree-generator/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/JaviRamosLab/tree-generator.git"
+  },
+  "funding": [
+    {
+      "type": "individual",
+      "url": "https://OperationCaribbeanSummer.com/funding"
+    },
+    {
+      "type": "opencollective",
+      "url": "https://opencollective.com/OperationCaribbeanSummer"
+    },
+    {
+      "type": "patreon",
+      "url": "https://www.patreon.com/JaviRamosLab"
+    },
+    {
+      "type": "buymeacoffee",
+      "url": "https://www.buymeacoffee.com/JaviRamosLab"
+    },
+    {
+      "type": "ko-fi",
+      "url": "https://ko-fi.com/JaviRamosLab"
+    },
+    {
+      "type": "liberapay",
+      "url": "https://liberapay.com/javiramoslab/"
+    },
+    {
+      "type": "github",
+      "url": "https://github.com/sponsors/JaviRamosLab"
+    }
+  ],
+  "license": "MIT",
+  "author": {
+    "name": "Javier Ramos Nistal",
+    "email": "co2mm.esperanto@gmail.com",
+    "url": "https://JaviRamosLab.com"
+  },
+  "dependencies": {
+    "minimatch": "^5.1.0"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.5.7"
+  },
+  "engines": {
+    "node": ">=20.0.0",
+    "npm": ">=10.0.0"
+  },
+  "readmeFilename": "README.md"
+}
