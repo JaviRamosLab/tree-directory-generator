@@ -1,7 +1,7 @@
 {
   "name": "directory-tree-generator",
   "version": "1.0.0",
-  "description": "A utility to generate visual representations of directory structures",
+  "description": "A utility to generate visual representations of directory structures as filetipes (.TREE, .TXT, .JSON)",
   "main": "src/treeGenerator.js",
   "scripts": {
     "start": "node src/treeGenerator.js",
