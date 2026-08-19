@@ -87,17 +87,29 @@ function processFolder(folderPath, prefix, excludeFolders, excludeFiles = EXCLUD
 		}
 	}
 
-	// Process subfolders first
-	for (let i = 0; i < subFolders.length; i++) {
-		const subFolder = subFolders[i];
-		const subFolderPath = path.join(folderPath, subFolder);
-		result += `${prefix}${BRANCH}${subFolder}\n`;
-		result += processFolder(subFolderPath, prefix + TAB, excludeFolders, excludeFiles, false);
-	}
+	// Combine folders and files, with folders first
+	const allItems = [...subFolders, ...files];
 
-	// Then add files to the result
-	for (const file of files) {
-		result += `${prefix}${BRANCH}${file}\n`;
+	// Process all items
+	for (let i = 0; i < allItems.length; i++) {
+		const item = allItems[i];
+		const isLast = i === allItems.length - 1;
+		const itemPath = path.join(folderPath, item);
+		const stat = fs.statSync(itemPath);
+
+		// Determine if this is the last item to use the appropriate branch character
+		const branchChar = isLast ? "└── " : "├── ";
+
+		if (stat.isDirectory()) {
+			// Process subfolder
+			result += `${prefix}${branchChar}${item}\n`;
+			// For subfolder content, adjust prefix appropriately
+			const subPrefix = isLast ? prefix + "    " : prefix + TAB; // Use spaces instead of │   for last item
+			result += processFolder(itemPath, subPrefix, excludeFolders, excludeFiles, false);
+		} else {
+			// Process file
+			result += `${prefix}${branchChar}${item}\n`;
+		}
 	}
 
 	return result;
