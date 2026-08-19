@@ -10,6 +10,7 @@
 	},
 	"formatter": {
 		"enabled": true,
+		"quoteStyle": "single",
 		"lineWidth": 300
 	},
 	"linter": {

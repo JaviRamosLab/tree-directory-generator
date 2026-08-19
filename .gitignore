@@ -1,8 +1,11 @@
 script-*.sh
 *-script.sh
 *.todo
-issue-list.csv
-/config/*.config44.json
+/config/config.json
+directory-structure.txt
+directory-structure.json
+directory-structure.tree.json
+directory-structure.tree
 
 *.bak
 *.gho
@@ -13,8 +16,9 @@ issue-list.csv
 *.key
 *.pem
 
+/data/
+/output/
 # /dist/
-# /data/
 # /build
 
 # Dependencies
