@@ -679,9 +679,9 @@ function generateTxtStructure(rootDir, excludeFolders, excludeFiles = EXCLUDE_FI
 	result += `Version     : ${packageJson.version}\n`;
 	result += `Generated   : ${new Date().toISOString()}\n`;
 	result += `Root        : ${path.resolve(rootDir)}\n`;
-	result += `URL         : https://javiramoslab.com/tree-generator/\n`;
-	result += `Docs        : https://javiramoslab.com/tree-generator/docs\n`;
-	result += `Schema      : https://javiramoslab.com/tree-generator/schema\n`;
+	result += `URL         : https://javiramoslab.com/tree-directory-generator/\n`;
+	result += `Docs        : https://javiramoslab.com/tree-directory-generator/docs\n`;
+	result += `Schema      : https://javiramoslab.com/tree-directory-generator/schema\n`;
 	result += "============================================\n";
 	result += `Folders     : ${folderCount}\n`;
 	result += `Files       : ${fileCount}\n`;
@@ -790,9 +790,9 @@ function formatOutput(rootDir, format, excludeFolders, excludeFiles = EXCLUDE_FI
 						description: packageJson.description,
 						author: packageJson.author,
 						license: packageJson.license,
-						url: "https://javiramoslab.com/tree-generator/",
-						docs: "https://javiramoslab.com/tree-generator/docs",
-						schema: "https://javiramoslab.com/tree-generator/schema",
+						url: "https://javiramoslab.com/tree-directory-generator/",
+						docs: "https://javiramoslab.com/tree-directory-generator/docs",
+						schema: "https://javiramoslab.com/tree-directory-generator/schema",
 						generated: new Date().toISOString(),
 						generator: {
 							name: packageJson.name,

@@ -1,10 +1,10 @@
-# Directory Tree Generator
+# Tree Directory Generator
 
 A versatile JavaScript utility for generating visual representations of directory structures in multiple formats.
 
 ## Overview
 
-The Directory Tree Generator is a cross-platform Node.js script that creates visual representations of directory structures with customizable output formats and exclusion rules. It supports three output formats: plain text, tree format, and JSON.
+The Tree Directory Generator is a cross-platform Node.js script that creates visual representations of directory structures with customizable output formats and exclusion rules. It supports three output formats: plain text, tree format, and JSON.
 
 This project draws inspiration from excellent tools like:
 
@@ -36,12 +36,12 @@ Like the original [RP Tree](https://github.com/realpython/rptree) Python tool, t
 
 ## Gitignore Integration
 
-The Directory Tree Generator now respects rules in your `.gitignore` file when determining which files and folders to exclude from the tree output. This ensures consistency with your Git repository's ignored files and makes the generated tree more relevant to your project's actual source code.
+The Tree Directory Generator now respects rules in your `.gitignore` file when determining which files and folders to exclude from the tree output. This ensures consistency with your Git repository's ignored files and makes the generated tree more relevant to your project's actual source code.
 
 For projects using this tool, consider adding these entries to your `.gitignore` file to prevent generated files from being committed:
 
 ```text
-# Directory tree generator outputs
+# Tree Directory Generator outputs
 /data/
 /output/
 config/config.json
@@ -219,7 +219,7 @@ The text format provides a visual representation of the directory structure with
 
 ```text
 ==========================================================
-Directory Tree Generator
+Tree Directory Generator
 ==========================================================
 Directory structure generated on Wed Aug 19 2026 ...
 Total number of folders: 5
@@ -245,17 +245,17 @@ The JSON format provides a structured representation with comprehensive metadata
 ```json
 {
   "metadata": {
-    "name": "directory-tree-generator",
+    "name": "tree-directory-generator",
     "version": "1.0.0",
     "description": "A versatile JavaScript utility for generating visual representations of directory structures in multiple formats.",
     "author": "JaviRamosLab",
     "license": "MIT",
-    "url": "https://javiramoslab.com/tree-generator/",
-    "docs": "https://javiramoslab.com/tree-generator/docs",
-    "schema": "https://javiramoslab.com/tree-generator/schema",
+    "url": "https://javiramoslab.com/tree-directory-generator/",
+    "docs": "https://javiramoslab.com/tree-directory-generator/docs",
+    "schema": "https://javiramoslab.com/tree-directory-generator/schema",
     "generated": "2026-08-19T11:27:52.000Z",
     "generator": {
-      "name": "directory-tree-generator",
+      "name": "tree-directory-generator",
       "version": "1.0.0",
       "platform": "win32",
       "nodeVersion": "v20.10.0"
@@ -427,7 +427,7 @@ The script can be integrated into:
 - **Hidden Items Support**: Better control over hidden/system files and folders (inspired by Windows tool)
 - **Scriptable Automation**: Full parameter support for automation scripts (inspired by Windows tool's NonInteractive mode)
 - **Restart Loop**: Option to restart the generation process (inspired by Windows tool's restart feature)
-- **NPM Package**: Package for global npm installation with `npm install -g directory-tree-generator`
+- **NPM Package**: Package for global npm installation with `npm install -g tree-directory-generator`
 - **CI/CD Integration**: GitHub Actions workflow for automated testing and publishing
 - **Gitignore Support**: Respect rules in .gitignore file when excluding files and folders
 - **Emoji Support**: Add customizable emoji icons for folders and files (e.g.,📁 for folders,📄 for files)
