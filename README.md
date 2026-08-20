@@ -190,7 +190,7 @@ The script uses a three-tier configuration system with the following priority (h
 | `LAST_BRANCH`        | `LAST_BRANCH`        | `LAST_BRANCH`        | `'└── '`                                              | Prefix for terminal items                           |
 | `EXCLUDE_FOLDERS`    | `EXCLUDE_FOLDERS`    | `EXCLUDE_FOLDERS`    | `['.git', 'node_modules', 'dist', 'build']`           | Folders to exclude from scan                        |
 | `EXCLUDE_FILES`      | `EXCLUDE_FILES`      | `EXCLUDE_FILES`      | `['Desktop.ini', '*.tmp', '*.log', '*.bak', '*.swp']` | Files to exclude from scan (supports glob patterns) |
-| [^1]                | `INPUT_DIR`          | `INPUT_DIR`          | `'.'`                                                 | Directory to scan                                   |
+|  -                   | `INPUT_DIR`          | `INPUT_DIR`          | `'.'`                                                 | Directory to scan                                   |
 | `FORMAT`             | `FORMAT`             | `FORMAT`             | `'txt'`                                               | Output format                                       |
 | `MAX_DEPTH`          | `MAX_DEPTH`          | `MAX_DEPTH`          | `10`                                                  | Maximum directory depth to traverse                 |
 | `SHOW_HIDDEN`        | `SHOW_HIDDEN`        | `SHOW_HIDDEN`        | `false`                                               | Whether to show hidden files                        |
@@ -209,7 +209,7 @@ The script uses a three-tier configuration system with the following priority (h
 | `RESPECT_GITIGNORE`  | `RESPECT_GITIGNORE`  | `RESPECT_GITIGNORE`  | `false`                                               | Whether to respect rules in .gitignore file         |
 | `HEADERS`            | `HEADERS`            | `HEADERS`            | `true`                                                | Whether to include detailed headers/metadata in output |
 
-[^1]: Note: The input directory can be specified as the first positional argument to the script, or via environment variable or config property
+Note: The input directory can be specified as the first positional argument to the script, or via environment variable or config property
 
 ## Output Format
 
