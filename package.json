@@ -1,29 +1,8 @@
 {
-  "name": "directory-tree-generator",
+  "name": "tree-directory-generator",
   "version": "1.0.0",
+  "private": false,
   "description": "A utility to generate visual representations of directory structures as filetipes (.TREE, .TXT, .JSON)",
-  "main": "src/treeGenerator.js",
-  "bin": {
-    "treegen": "./src/treeGenerator.js",
-    "directory-tree-generator": "./src/treeGenerator.js"
-  },
-  "scripts": {
-    "start": "node src/treeGenerator.js",
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "node src/treeGenerator.js",
-    "build": "echo \"Build completed\"",
-    "lint": "echo \"No linting configured yet\"",
-    "format": "biome format --write .",
-    "format:check": "biome format --check .",
-    "lint:fix": "biome lint --write .",
-    "clean": "rimraf dist coverage .nyc_output",
-    "clean:deps": "rimraf node_modules package-lock.json",
-    "install:clean": "npm run clean:deps && npm install",
-    "security": "npm audit --audit-level high",
-    "security:fix": "npm audit fix",
-    "release": "semantic-release",
-    "release:dry-run": "semantic-release --dry-run"
-  },
   "keywords": [
     "directory",
     "tree",
@@ -38,22 +17,22 @@
     "tree-view",
     "file-system-traversal"
   ],
-  "homepage": "https://github.com/JaviRamosLab/tree-generator#readme",
+  "homepage": "https://github.com/JaviRamosLab/tree-directory-generator#readme",
   "bugs": {
-    "url": "https://github.com/JaviRamosLab/tree-generator/issues"
+    "url": "https://github.com/JaviRamosLab/tree-directory-generator/issues"
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/JaviRamosLab/tree-generator.git"
+    "url": "https://github.com/JaviRamosLab/tree-directory-generator.git"
   },
   "funding": [
     {
       "type": "individual",
-      "url": "https://OperationCaribbeanSummer.com/funding"
+      "url": "https://javiramoslab.com/funding"
     },
     {
       "type": "opencollective",
-      "url": "https://opencollective.com/OperationCaribbeanSummer"
+      "url": "https://opencollective.com/javiramoslab"
     },
     {
       "type": "patreon",
@@ -82,6 +61,41 @@
     "email": "co2mm.esperanto@gmail.com",
     "url": "https://JaviRamosLab.com"
   },
+  "main": "src/treeGenerator.js",
+  "files": [
+    "src/",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "audit": "npm audit",
+    "build": "echo \"Build completed\"",
+    "check": "biome check .",
+    "check:fix": "biome check --write .",
+    "clean": "rimraf dist coverage .nyc_output",
+    "clean:deps": "rimraf node_modules package-lock.json",
+    "dev": "node --watch src/treeGenerator.js",
+    "format": "biome format --write .",
+    "format:check": "biome format --check .",
+    "install:clean": "npm run clean:deps && npm install",
+    "lint": "biome lint .",
+    "lint:fix": "biome lint --write .",
+    "lint-ci": "biome ci .",
+    "pack": "npm pack --pack-destination=./dist/",
+    "prepare": "husky",
+    "publish": "npm publish",
+    "release": "semantic-release",
+    "release:dry-run": "semantic-release --dry-run",
+    "security": "npm audit --audit-level high",
+    "security:fix": "npm audit fix",
+    "start": "node --watch app.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "config": {
+    "commitizen": {
+      "path": "./node_modules/cz-conventional-changelog"
+    }
+  },
   "dependencies": {
     "dotenv": "^17.4.2",
     "gitignore-parser": "^0.0.2",
@@ -90,18 +104,23 @@
   },
   "devDependencies": {
     "@biomejs/biome": "2.5.8",
+    "@commitlint/cli": "^20.1.0",
+    "@commitlint/config-conventional": "^20.0.0",
+    "@commitlint/cz-commitlint": "^20.1.0",
     "@semantic-release/github": "^10.0.0",
     "@semantic-release/npm": "^12.0.0",
+    "cz-conventional-changelog": "^3.3.0",
+    "husky": "^9.1.7",
     "semantic-release": "^24.0.0"
   },
   "engines": {
     "node": ">=20.0.0",
     "npm": ">=10.0.0"
   },
+  "docs": "https://javiramoslab.com/projects/tree-directory-generator/docs",
   "readmeFilename": "README.md",
-  "files": [
-    "src/",
-    "README.md",
-    "LICENSE"
-  ]
+  "security": {
+    "contact": "co2mm.esperanto@gmail.com",
+    "policy": "https://github.com/javiramoslab/tree-directory-generator/security/policy"
+  }
 }
