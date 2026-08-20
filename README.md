@@ -32,6 +32,7 @@ Like the original [RP Tree](https://github.com/realpython/rptree) Python tool, t
 - **Progress Indication**: Console output during scanning process
 - **Gitignore Support**: Respects rules in `.gitignore` file when determining which files and folders to exclude
 - **Emoji Support**: Customizable emoji icons for folders and files (e.g., 📁 for folders, 📄 for files)
+- **Headers/Metadata Toggle**: Option to include or exclude detailed header information in output via `--headers`/`--no-headers` flags
 
 ## Gitignore Integration
 
@@ -69,43 +70,58 @@ Example with emojis enabled:
 └── 📄 package.json
 ```
 
+## Headers/Metadata Toggle
+
+The tool includes a `--headers` flag (enabled by default) that controls whether detailed metadata is included in the output. Use `--no-headers` to generate cleaner output without metadata headers, or `--headers` to ensure metadata is included (this is the default behavior).
+
 ## Installation & Usage
 
 ### Prerequisites
 
 - Node.js installed on your system
-- Install dependencies: `npm install && npm install minimist`
+- Install dependencies: `npm install && npm install minimist dotenv minimatch gitignore-parser`
 
 ### Running the Script
 
 ```bash
-node treeGenerator.js [directory] [format] [exclude_folders] [exclude_files] [max_depth] [output_file] [tab] [branch] [last_branch] [show_hidden] [show_size] [show_permissions] [show_last_modified] [include_extensions] [exclude_patterns] [output_path] [create_subfolder] [verbose] [color_output] [max_file_size] [ignore_list]
+node treeGenerator.js [options] [directory]
 ```
 
-### Parameters
+### Command Line Options
 
-- `[directory]`: Path to the directory to scan (defaults to current directory `.`)
-- `[format]`: Output format (`txt`, `tree`, or `json`) (defaults to `txt`)
-- `[exclude_folders]`: Comma-separated list of folders to exclude (defaults to `.git,node_modules,dist,build`)
-- `[exclude_files]`: Comma-separated list of files to exclude (supports glob patterns)
-- `[max_depth]`: Maximum depth for directory traversal (defaults to 10)
-- `[output_file]`: Base name for output files (defaults to `directory-structure`)
-- `[tab]`: String used for indentation (defaults to `│   `)
-- `[branch]`: String used for non-terminal items (defaults to `├── `)
-- `[last_branch]`: String used for terminal items (defaults to `└── `)
-- `[show_hidden]`: Whether to show hidden files (defaults to `false`)
-- `[show_size]`: Whether to show file sizes (defaults to `false`)
-- `[show_permissions]`: Whether to show file permissions (defaults to `false`)
-- `[show_last_modified]`: Whether to show last modified dates (defaults to `false`)
-- `[include_extensions]`: Comma-separated list of file extensions to include (empty means all)
-- `[exclude_patterns]`: Comma-separated list of patterns to exclude (supports glob patterns)
-- `[output_path]`: Path for output files (defaults to `./output`)
-- `[create_subfolder]`: Whether to create subfolder for output (defaults to `false`)
-- `[verbose]`: Whether to show verbose output (defaults to `false`)
-- `[color_output]`: Whether to enable color output (defaults to `false`)
-- `[max_file_size]`: Maximum file size to include in bytes (defaults to 10485760 - 10MB)
-- `[ignore_list]`: Additional files to ignore (defaults to `.DS_Store,Thumbs.db`)
-- `[use_emojis]`: Whether to use emoji icons for folders and files (defaults to `false`)
+The script accepts the following command line options:
+
+```
+Usage: node treeGenerator.js [options] [directory]
+
+Options:
+  -h, --help              Show this help message
+  -v, --version           Show version information
+  -d, --dir-only          Generate a directory-only tree diagram
+  -o, --output-file       Save output to a file (default: directory-structure)
+  --exclude               Comma-separated list of folders to exclude
+  --format                Output format (txt, tree, json) (default: txt)
+  --max-depth             Maximum directory depth to traverse (default: 10)
+  --hidden                Show hidden files (default: false)
+  --size                  Show file sizes (default: false)
+  --permissions           Show file permissions (default: false)
+  --modified              Show last modified dates (default: false)
+  --extensions            Comma-separated list of file extensions to include
+  --exclude-patterns      Comma-separated list of patterns to exclude
+  --output-path           Path for output files (default: ./output)
+  --subfolder             Create subfolder for output (default: false)
+  --verbose               Show verbose output (default: false)
+  --color                 Enable color output (default: false)
+  --max-file-size         Maximum file size to include in bytes (default: 10485760)
+  --tab                   String for indentation (default: │   )
+  --branch                String for non-terminal items (default: ├── )
+  --last-branch           String for terminal items (default: └── )
+  --ignore                Additional files to ignore (default: .DS_Store,Thumbs.db)
+  --use-emojis            Use emoji icons for folders and files (default: false)
+  --gitignore             Respect rules in .gitignore file (default: false)
+  --headers               Include detailed headers/metadata in output (default: true)
+  --no-headers            Exclude detailed headers/metadata from output (overrides --headers)
+```
 
 ### Examples
 
@@ -174,7 +190,7 @@ The script uses a three-tier configuration system with the following priority (h
 | `LAST_BRANCH`        | `LAST_BRANCH`        | `LAST_BRANCH`        | `'└── '`                                              | Prefix for terminal items                           |
 | `EXCLUDE_FOLDERS`    | `EXCLUDE_FOLDERS`    | `EXCLUDE_FOLDERS`    | `['.git', 'node_modules', 'dist', 'build']`           | Folders to exclude from scan                        |
 | `EXCLUDE_FILES`      | `EXCLUDE_FILES`      | `EXCLUDE_FILES`      | `['Desktop.ini', '*.tmp', '*.log', '*.bak', '*.swp']` | Files to exclude from scan (supports glob patterns) |
-| `INPUT_DIR`          | `INPUT_DIR`          | `INPUT_DIR`          | `'.'`                                                 | Directory to scan                                   |
+| [^1]                | `INPUT_DIR`          | `INPUT_DIR`          | `'.'`                                                 | Directory to scan                                   |
 | `FORMAT`             | `FORMAT`             | `FORMAT`             | `'txt'`                                               | Output format                                       |
 | `MAX_DEPTH`          | `MAX_DEPTH`          | `MAX_DEPTH`          | `10`                                                  | Maximum directory depth to traverse                 |
 | `SHOW_HIDDEN`        | `SHOW_HIDDEN`        | `SHOW_HIDDEN`        | `false`                                               | Whether to show hidden files                        |
@@ -193,11 +209,13 @@ The script uses a three-tier configuration system with the following priority (h
 | `RESPECT_GITIGNORE`  | `RESPECT_GITIGNORE`  | `RESPECT_GITIGNORE`  | `false`                                               | Whether to respect rules in .gitignore file         |
 | `HEADERS`            | `HEADERS`            | `HEADERS`            | `true`                                                | Whether to include detailed headers/metadata in output |
 
+[^1]: Note: The input directory can be specified as the first positional argument to the script, or via environment variable or config property
+
 ## Output Format
 
 ### Text/Tree Format
 
-The text format provides a visual representation of the directory structure:
+The text format provides a visual representation of the directory structure with optional headers when enabled (default behavior). The headers include metadata about the generated tree such as version, generation timestamp, root directory, counts, and configuration details. Use `--no-headers` to suppress this metadata for cleaner output.
 
 ```text
 ==========================================================
@@ -222,37 +240,80 @@ project-root
 
 ### JSON Format
 
-The JSON format provides a structured representation:
+The JSON format provides a structured representation with comprehensive metadata when headers are enabled (default behavior). With `--no-headers`, only the tree structure is returned without metadata.
 
 ```json
 {
-  "name": "project-root",
-  "type": "folder",
-  "children": [
-    {
-      "name": ".github",
-      "type": "folder",
-      "children": [
-        {
-          "name": "workflows",
-          "type": "folder",
-          "children": []
-        },
-        {
-          "name": "ISSUE_TEMPLATE",
-          "type": "folder",
-          "children": []
-        }
-      ]
+  "metadata": {
+    "name": "directory-tree-generator",
+    "version": "1.0.0",
+    "description": "A versatile JavaScript utility for generating visual representations of directory structures in multiple formats.",
+    "author": "JaviRamosLab",
+    "license": "MIT",
+    "url": "https://javiramoslab.com/tree-generator/",
+    "docs": "https://javiramoslab.com/tree-generator/docs",
+    "schema": "https://javiramoslab.com/tree-generator/schema",
+    "generated": "2026-08-19T11:27:52.000Z",
+    "generator": {
+      "name": "directory-tree-generator",
+      "version": "1.0.0",
+      "platform": "win32",
+      "nodeVersion": "v20.10.0"
     },
-    {
-      "name": "src",
-      "type": "folder",
-      "children": [
-        // ... more structure
-      ]
+    "root": "/path/to/project",
+    "stats": {
+      "folders": 5,
+      "files": 12,
+      "size": 10240,
+      "sizeFormatted": "10 KB",
+      "outputFile": "directory-structure.json",
+      "format": "JSON",
+      "maxDepth": 10,
+      "filters": "all files"
+    },
+    "config": {
+      "showHidden": false,
+      "showSize": false,
+      "showPermissions": false,
+      "showLastModified": false,
+      "useEmojis": false,
+      "respectGitignore": false,
+      "includeExtensions": "",
+      "excludeFolders": [".git", "node_modules", "dist", "build"],
+      "excludePatterns": "",
+      "dirOnlyMode": false,
+      "maxFileSize": 10485760
     }
-  ]
+  },
+  "tree": {
+    "name": "project-root",
+    "type": "folder",
+    "children": [
+      {
+        "name": ".github",
+        "type": "folder",
+        "children": [
+          {
+            "name": "workflows",
+            "type": "folder",
+            "children": []
+          },
+          {
+            "name": "ISSUE_TEMPLATE",
+            "type": "folder",
+            "children": []
+          }
+        ]
+      },
+      {
+        "name": "src",
+        "type": "folder",
+        "children": [
+          // ... more structure
+        ]
+      }
+    ]
+  }
 }
 ```
 
@@ -293,23 +354,25 @@ EXCLUDE_FILES=*.log,*.tmp,*.bak
 MAX_DEPTH=20
 SHOW_SIZE=true
 SHOW_HIDDEN=true
+HEADERS=false  # Disable headers/metadata in output
 ```
 
 ### Using Config File
 
-Edit `config/config.json` to configure the tool:
+Edit `config/config.js` to configure the tool (note: the configuration file is now in JavaScript format rather than JSON for easier integration with the Node.js script):
 
-```json
-{
-  "OUTPUT_FILE": "my_tree",
-  "TAB": "    ",
-  "BRANCH": "|-- ",
-  "EXCLUDE_FOLDERS": [".git", "node_modules", ".cache"],
-  "EXCLUDE_FILES": ["*.log", "*.tmp"],
-  "MAX_DEPTH": 15,
-  "SHOW_SIZE": true,
-  "SHOW_HIDDEN": true
-}
+```javascript
+module.exports = {
+  OUTPUT_FILE: "my_tree",
+  TAB: "    ",
+  BRANCH: "|-- ",
+  EXCLUDE_FOLDERS: [".git", "node_modules", ".cache"],
+  EXCLUDE_FILES: ["*.log", "*.tmp"],
+  MAX_DEPTH: 15,
+  SHOW_SIZE: true,
+  SHOW_HIDDEN: true,
+  HEADERS: false  // Disable headers/metadata in output
+};
 ```
 
 ## Troubleshooting
@@ -320,6 +383,8 @@ Edit `config/config.json` to configure the tool:
 2. **Permission denied**: Make sure you have read permissions for the directory
 3. **Empty output**: Verify that the directory contains files/folders
 4. **Missing minimatch**: Install dependencies with `npm install`
+5. **Missing gitignore-parser**: Install with `npm install gitignore-parser` to enable .gitignore support
+6. **Truncated symbols in environment variables**: Some terminals may truncate Unicode characters; ensure your environment properly supports Unicode symbols like │, ├, └
 
 ### Performance Considerations
 
@@ -327,6 +392,7 @@ Edit `config/config.json` to configure the tool:
 - Deeply nested structures may consume significant memory
 - Excluding large folders (like `node_modules`) improves performance
 - Setting lower MAX_DEPTH values improves performance
+- Using file extension filters reduces processing time
 
 ## Integration
 
