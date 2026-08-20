@@ -85,7 +85,7 @@
   "dependencies": {
     "dotenv": "^17.4.2",
     "gitignore-parser": "^0.0.2",
-    "minimatch": "^5.1.0",
+    "minimatch": "^10.2.6",
     "minimist": "^1.2.8"
   },
   "devDependencies": {
