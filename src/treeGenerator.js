@@ -37,10 +37,18 @@ try {
 	gitignoreParser = null;
 }
 
+// Temporarily check if headers-related flags are in raw arguments
+const rawArgs = process.argv.slice(2);
+const headersFlagProvided = rawArgs.some(arg => 
+	arg === '--headers' || 
+	arg === '--no-headers' ||
+	/^--headers($|=)/.test(arg) // matches --headers or --headers=value
+);
+
 // Parse command line arguments using minimist
 const args = minimist(process.argv.slice(2), {
 	string: ["_", "output-file", "exclude", "format", "output-path", "extensions", "exclude-patterns", "tab", "branch", "last-branch", "ignore"],
-	boolean: ["help", "version", "dir-only", "hidden", "size", "permissions", "modified", "subfolder", "verbose", "color", "use-emojis", "gitignore"],
+	boolean: ["help", "version", "dir-only", "hidden", "size", "permissions", "modified", "subfolder", "verbose", "color", "use-emojis", "gitignore", "headers"],
 	alias: {
 		h: "help",
 		v: "version",
@@ -56,6 +64,14 @@ const args = minimist(process.argv.slice(2), {
 		// "max-file-size": 10485760,
 	},
 });
+
+// Handle HEADERS with proper priority: CLI args > environment variables > config > default
+// If headers flag was provided in CLI, use the parsed value
+// Otherwise, check environment variables, then config, then default
+const HEADERS = headersFlagProvided ? Boolean(args.headers) :
+               process.env.HEADERS !== undefined ? process.env.HEADERS === "true" :
+               config.HEADERS !== undefined ? Boolean(config.HEADERS) :
+               true; // default value
 
 // Show version and exit if --version flag is provided
 if (args.version) {
@@ -94,6 +110,7 @@ Options:
   --ignore                Additional files to ignore (default: .DS_Store,Thumbs.db)
   --use-emojis            Use emoji icons for folders and files (default: false)
   --gitignore             Respect rules in .gitignore file (default: false)
+  --headers               Include detailed headers/metadata in output (default: true)
 
 Examples:
   node treeGenerator.js                    # Generate tree for current directory
@@ -104,6 +121,7 @@ Examples:
   node treeGenerator.js --size --hidden    # Show file sizes and hidden files
   node treeGenerator.js --use-emojis       # Use emoji icons for folders and files
   node treeGenerator.js --gitignore        # Respect .gitignore rules
+  node treeGenerator.js --no-headers       # Generate output without detailed headers
 	`);
 	process.exit(0);
 }
@@ -293,6 +311,8 @@ const VERBOSE = args.verbose || (process.env.VERBOSE ? process.env.VERBOSE === "
 const COLOR_OUTPUT = args.color || (process.env.COLOR_OUTPUT ? process.env.COLOR_OUTPUT === "true" : config.COLOR_OUTPUT) || false;
 const MAX_FILE_SIZE = args["max-file-size"] || parseInt(process.env.MAX_FILE_SIZE) || config.MAX_FILE_SIZE || 10485760; // 10MB default
 const IGNORE_LIST = getArrayValue(args.ignore, process.env.IGNORE_LIST, config.IGNORE_LIST, ".DS_Store,Thumbs.db");
+const EMOJI_FOLDER = (process.env.EMOJI_FOLDER || config.EMOJI_FOLDER) + " " || "📁 ";
+const EMOJI_FILE = (process.env.EMOJI_FILE || config.EMOJI_FILE) + " " || "📄 ";
 
 // Handle directory-only flag by setting file exclusion patterns
 const DIR_ONLY_MODE = args["dir-only"];
@@ -448,6 +468,13 @@ if (VERBOSE === true && process.env.LOGGING === "true") {
 	console.log("config.RESPECT_GITIGNORE=", config.RESPECT_GITIGNORE);
 	console.log("gitIgnoreRules loaded=", !!gitIgnoreRules);
 	console.log("----");
+	console.log("✅ HEADERS");
+	console.log("HEADERS=", HEADERS);
+	console.log("args.headers=", args["headers"]);
+	console.log(`args["no-headers"]=`, args["no-headers"]);
+	console.log("process.env.HEADERS=", process.env.HEADERS);
+	console.log("config.HEADERS=", config.HEADERS);
+	console.log("----");
 	// console.log("----");
 	// console.log("----");
 	// console.log("✅ VERSION");
@@ -471,13 +498,25 @@ if (VERBOSE === true && process.env.LOGGING === "true") {
 }
 
 /**
+ * Format bytes to human readable format
+ */
+function formatBytes(bytes) {
+	if (bytes === 0) return '0 Bytes';
+	const k = 1024;
+	const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+	const i = Math.floor(Math.log(bytes) / Math.log(k));
+	return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
+
+/**
  * Count folders and files without generating output
  */
 function countItems(folderPath, excludeFolders, excludeFiles = EXCLUDE_FILES, depth = 0) {
-	if (depth > MAX_DEPTH) return { folderCount: 0, fileCount: 0 };
+	if (depth > MAX_DEPTH) return { folderCount: 0, fileCount: 0, totalSize: 0 };
 
 	let folderCount = 0;
 	let fileCount = 0;
+	let totalSize = 0;
 
 	const items = fs.readdirSync(folderPath);
 
@@ -496,6 +535,7 @@ function countItems(folderPath, excludeFolders, excludeFiles = EXCLUDE_FILES, de
 				const childCounts = countItems(itemPath, excludeFolders, excludeFiles, depth + 1);
 				folderCount += childCounts.folderCount;
 				fileCount += childCounts.fileCount;
+				totalSize += childCounts.totalSize;
 			}
 		} else {
 			// Apply all filters for files
@@ -505,15 +545,18 @@ function countItems(folderPath, excludeFolders, excludeFiles = EXCLUDE_FILES, de
 					const fileSize = getFileSize(itemPath);
 					if (fileSize <= MAX_FILE_SIZE) {
 						fileCount++;
+						totalSize += fileSize;
 					}
 				} else {
+					const fileSize = getFileSize(itemPath);
 					fileCount++;
+					totalSize += fileSize;
 				}
 			}
 		}
 	}
 
-	return { folderCount, fileCount };
+	return { folderCount, fileCount, totalSize };
 }
 
 /**
@@ -598,7 +641,7 @@ function processFolder(folderPath, prefix, excludeFolders, excludeFiles = EXCLUD
 
 		if (stat.isDirectory()) {
 			// Process subfolder
-			const folderPrefix = USE_EMOJIS ? "📁 " : "";
+			const folderPrefix = USE_EMOJIS ? EMOJI_FOLDER : "";
 			result += `${prefix}${branchChar}${folderPrefix}${item}${additionalInfo}\n`;
 			// For subfolder content, adjust prefix appropriately
 			// If this is not the last item, use vertical bar prefix; otherwise use spaces
@@ -606,7 +649,7 @@ function processFolder(folderPath, prefix, excludeFolders, excludeFiles = EXCLUD
 			result += processFolder(itemPath, subPrefix, excludeFolders, excludeFiles, false, depth + 1);
 		} else {
 			// Process file
-			const filePrefix = USE_EMOJIS ? "📄 " : "";
+			const filePrefix = USE_EMOJIS ? EMOJI_FILE : "";
 			result += `${prefix}${branchChar}${filePrefix}${item}${additionalInfo}\n`;
 		}
 	}
@@ -622,15 +665,36 @@ function generateTxtStructure(rootDir, excludeFolders, excludeFiles = EXCLUDE_FI
 	const counts = countItems(rootDir, excludeFolders, excludeFiles);
 	const folderCount = counts.folderCount;
 	const fileCount = counts.fileCount;
+	const totalSize = counts.totalSize || 0;
+
+	// Load package.json for metadata
+	const packageJson = require("../package.json");
 
 	let result = "";
-	result += "==========================================================\n";
+	// if  (HEADERS==="true") {
+	if  (HEADERS) {
+	result += "============================================\n";
 	result += "Directory Tree Generator\n";
-	result += "==========================================================\n";
-	result += `Directory structure generated on ${new Date().toString()}\n`;
-	result += `Total number of folders: ${folderCount}\n`;
-	result += `Total number of files: ${fileCount}\n`;
-	result += "==========================================================\n\n";
+	result += "============================================\n";
+	result += `Version     : ${packageJson.version}\n`;
+	result += `Generated   : ${new Date().toISOString()}\n`;
+	result += `Root        : ${path.resolve(rootDir)}\n`;
+	result += `URL         : https://javiramoslab.com/tree-generator/\n`;
+	result += `Docs        : https://javiramoslab.com/tree-generator/docs\n`;
+	result += `Schema      : https://javiramoslab.com/tree-generator/schema\n`;
+	result += "============================================\n";
+	result += `Folders     : ${folderCount}\n`;
+	result += `Files       : ${fileCount}\n`;
+	result += `Size        : ${formatBytes(totalSize)}\n`;
+	// result += `Destination : Console\n`;
+	result += `Output file : ${OUTPUT_FILE}.${FORMAT}\n`;
+	result += `Format      : ${FORMAT.toUpperCase()}\n`;
+	result += `Max Depth   : ${MAX_DEPTH}\n`;
+	result += `Filters     : ${DIR_ONLY_MODE ? 'directories only' : 'all files'}\n`;
+	if (INCLUDE_EXTENSIONS) result += `Extensions  : ${INCLUDE_EXTENSIONS}\n`;
+	if (EXCLUDE_FOLDERS.length > 0) result += `Excluded    : ${EXCLUDE_FOLDERS.join(', ')}\n`;
+	result += "============================================\n\n";
+	}
 
 	// Add root folder name at the top
 	const rootFolderName = path.basename(rootDir);
@@ -715,8 +779,60 @@ function generateJsonStructure(folderPath, excludeFolders, excludeFiles = EXCLUD
 function formatOutput(rootDir, format, excludeFolders, excludeFiles = EXCLUDE_FILES) {
 	switch (format.toLowerCase()) {
 		case "json": {
-			const jsonStructure = generateJsonStructure(rootDir, excludeFolders, excludeFiles, true);
-			return JSON.stringify(jsonStructure, null, 2);
+			if (HEADERS) {
+				const packageJson = require("../package.json");
+				const counts = countItems(rootDir, excludeFolders, excludeFiles);
+				
+				const jsonStructure = {
+					metadata: {
+						name: packageJson.name,
+						version: packageJson.version,
+						description: packageJson.description,
+						author: packageJson.author,
+						license: packageJson.license,
+						url: "https://javiramoslab.com/tree-generator/",
+						docs: "https://javiramoslab.com/tree-generator/docs",
+						schema: "https://javiramoslab.com/tree-generator/schema",
+						generated: new Date().toISOString(),
+						generator: {
+							name: packageJson.name,
+							version: packageJson.version,
+							platform: process.platform,
+							nodeVersion: process.version
+						},
+						root: path.resolve(rootDir),
+						stats: {
+							folders: counts.folderCount,
+							files: counts.fileCount,
+							size: counts.totalSize,
+							sizeFormatted: formatBytes(counts.totalSize),
+							outputFile: `${OUTPUT_FILE}.${FORMAT}`,
+							format: FORMAT.toUpperCase(),
+							maxDepth: MAX_DEPTH,
+							filters: DIR_ONLY_MODE ? 'directories only' : 'all files'
+						},
+						config: {
+							showHidden: SHOW_HIDDEN,
+							showSize: SHOW_SIZE,
+							showPermissions: SHOW_PERMISSIONS,
+							showLastModified: SHOW_LAST_MODIFIED,
+							useEmojis: USE_EMOJIS,
+							respectGitignore: RESPECT_GITIGNORE,
+							includeExtensions: INCLUDE_EXTENSIONS,
+							excludeFolders: EXCLUDE_FOLDERS,
+							excludePatterns: EXCLUDE_PATTERNS,
+							dirOnlyMode: DIR_ONLY_MODE,
+							maxFileSize: MAX_FILE_SIZE
+						}
+					},
+					tree: generateJsonStructure(rootDir, excludeFolders, excludeFiles, true)
+				};
+				return JSON.stringify(jsonStructure, null, 2);
+			} else {
+				// Return just the tree structure without metadata when headers are disabled
+				const jsonStructure = generateJsonStructure(rootDir, excludeFolders, excludeFiles, true);
+				return JSON.stringify(jsonStructure, null, 2);
+			}
 		}
 
 		case "tree":
@@ -784,8 +900,16 @@ function main() {
 
 	// Count items for display purposes
 	const counts = countItems(rootDir, excludeFolders, excludeFiles);
-	console.log(`Total number of folders: ${counts.folderCount}`);
-	console.log(`Total number of files: ${counts.fileCount}`);
+	if (HEADERS) {
+		console.log(`Folders     : ${counts.folderCount}`);
+		console.log(`Files       : ${counts.fileCount}`);
+		console.log(`Size        : ${formatBytes(counts.totalSize)}`);
+		console.log(`Destination : ${fileName}`);
+		console.log(`Generated   : ${new Date().toISOString()}`);
+		console.log(`Root        : ${path.resolve(rootDir)}`);
+	} else {
+		console.log(`Saved ${counts.folderCount} folders and ${counts.fileCount} files to ${fileName}`);
+	}
 
 	if (VERBOSE) {
 		console.log(`Max depth: ${MAX_DEPTH}`);
@@ -809,6 +933,7 @@ module.exports = {
 	generateTxtStructure,
 	generateJsonStructure,
 	formatOutput,
+	formatBytes,
 	OUTPUT_FILE,
 	TAB,
 	BRANCH,
@@ -831,5 +956,6 @@ module.exports = {
 	VERBOSE,
 	COLOR_OUTPUT,
 	MAX_FILE_SIZE,
+	HEADERS,
 	IGNORE_LIST,
 };

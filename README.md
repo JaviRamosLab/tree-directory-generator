@@ -131,14 +131,20 @@ node treeGenerator.js ./src --max-depth 5
 # Generate tree showing file sizes and hidden files
 node treeGenerator.js ./src --size --hidden
 
-# Generate tree with specific exclusions
-node treeGenerator.js ./src --exclude ".git,node_modules,temp"
-
 # Generate tree with file extensions filter
 node treeGenerator.js ./src --extensions "js,ts,json"
 
 # Generate tree with verbose output
 node treeGenerator.js ./src --verbose
+
+# Generate tree with emoji icons for folders and files
+node treeGenerator.js ./src --use-emojis
+
+# Generate tree without detailed headers/metadata
+node treeGenerator.js ./src --no-headers
+
+# Generate tree with headers/metadata (default behavior)
+node treeGenerator.js ./src --headers
 
 # Show version information
 node treeGenerator.js -v
@@ -146,14 +152,8 @@ node treeGenerator.js -v
 # Show help information
 node treeGenerator.js -h
 
-# Generate tree with emoji icons for folders and files
-node treeGenerator.js ./src --use-emojis
-
-# Generate tree respecting .gitignore rules
-node treeGenerator.js ./src --respect-gitignore
-
-# Complex example with multiple flags including emoji and gitignore
-node treeGenerator.js ./my-project --format json --max-depth 3 --size --permissions --exclude ".git,node_modules" --extensions "js,ts,css,html" --use-emojis --respect-gitignore
+# Complex example with multiple flags
+node treeGenerator.js ./my-project --format json --max-depth 3 --size --permissions --exclude ".git,node_modules" --extensions "js,ts,css,html" --use-emojis --headers
 ```
 
 ## Configuration Sources Priority
@@ -190,6 +190,8 @@ The script uses a three-tier configuration system with the following priority (h
 | `MAX_FILE_SIZE`      | `MAX_FILE_SIZE`      | `MAX_FILE_SIZE`      | `10485760`                                            | Maximum file size to include in bytes               |
 | `IGNORE_LIST`        | `IGNORE_LIST`        | `IGNORE_LIST`        | `['.DS_Store','Thumbs.db']`                           | Additional files to ignore                          |
 | `USE_EMOJIS`         | `USE_EMOJIS`         | `USE_EMOJIS`         | `false`                                               | Whether to use emoji icons for folders and files    |
+| `RESPECT_GITIGNORE`  | `RESPECT_GITIGNORE`  | `RESPECT_GITIGNORE`  | `false`                                               | Whether to respect rules in .gitignore file         |
+| `HEADERS`            | `HEADERS`            | `HEADERS`            | `true`                                                | Whether to include detailed headers/metadata in output |
 
 ## Output Format
 
