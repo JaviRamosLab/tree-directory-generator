@@ -7,6 +7,7 @@ A versatile JavaScript utility for generating visual representations of director
 The Directory Tree Generator is a cross-platform Node.js script that creates visual representations of directory structures with customizable output formats and exclusion rules. It supports three output formats: plain text, tree format, and JSON.
 
 This project draws inspiration from excellent tools like:
+
 - [Python's rptree](https://github.com/realpython/rptree) - A Python-based directory tree generator
 - [Windows Visual Directory Tree Generator](https://github.com/BVisagie/windows-visual-directory-tree-generator) - A Windows-specific directory visualization tool
 
@@ -37,7 +38,8 @@ Like the original [RP Tree](https://github.com/realpython/rptree) Python tool, t
 The Directory Tree Generator now respects rules in your `.gitignore` file when determining which files and folders to exclude from the tree output. This ensures consistency with your Git repository's ignored files and makes the generated tree more relevant to your project's actual source code.
 
 For projects using this tool, consider adding these entries to your `.gitignore` file to prevent generated files from being committed:
-```
+
+```text
 # Directory tree generator outputs
 /data/
 /output/
@@ -47,12 +49,14 @@ config/config.json
 ## Emoji Support
 
 Enhance your directory tree visualization with customizable emoji icons:
+
 - Folders are displayed with the 📁 emoji by default
 - Files are displayed with the 📄 emoji by default
 - Customize emojis via command-line arguments, environment variables, or config file
 
 Example with emojis enabled:
-```
+
+```text
 📁 project-root
 ├── 📁 .github
 │   ├── 📁 workflows
@@ -360,6 +364,26 @@ The script can be integrated into:
 - **Gitignore Support**: Respect rules in .gitignore file when excluding files and folders
 - **Emoji Support**: Add customizable emoji icons for folders and files (e.g.,📁 for folders,📄 for files)
 - **Default Gitignore Entries**: Automatically add `/data/` and `/output/` directories, and personalized user `config.json` to .gitignore
+
+## Contributing
+
+We welcome contributions! Please follow these steps:
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Make your changes
+4. Add tests for your changes (if applicable)
+5. Run the test suite (`npm test`)
+6. Commit your changes using conventional commits format
+7. Push to the branch (`git push origin feature/amazing-feature`)
+8. Open a Pull Request
+
+### GitHub Actions Workflows
+
+This project uses two GitHub Actions workflows:
+
+- **CI Workflow** (`.github/workflows/ci.yml`): Runs on every push and pull request to test the code across multiple Node.js versions
+- **Release Workflow** (`.github/workflows/release.yml`): Runs on pushes to main branch to automatically publish new versions to npm (requires `NPM_TOKEN` secret)
 
 ## License
 

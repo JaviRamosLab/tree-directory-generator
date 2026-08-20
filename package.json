@@ -2,15 +2,15 @@
   "name": "directory-tree-generator",
   "version": "1.0.0",
   "description": "A utility to generate visual representations of directory structures as filetipes (.TREE, .TXT, .JSON)",
-  "main": "treeGenerator.js",
+  "main": "src/treeGenerator.js",
   "bin": {
     "treegen": "./src/treeGenerator.js",
     "directory-tree-generator": "./src/treeGenerator.js"
   },
   "scripts": {
-    "start": "node treeGenerator.js",
+    "start": "node src/treeGenerator.js",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "node treeGenerator.js",
+    "dev": "node src/treeGenerator.js",
     "build": "echo \"Build completed\"",
     "lint": "echo \"No linting configured yet\"",
     "format": "biome format --write .",
@@ -101,5 +101,10 @@
     "node": ">=20.0.0",
     "npm": ">=10.0.0"
   },
-  "readmeFilename": "README.md"
+  "readmeFilename": "README.md",
+  "files": [
+    "src/",
+    "README.md",
+    "LICENSE"
+  ]
 }
