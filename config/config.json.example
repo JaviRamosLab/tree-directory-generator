@@ -19,5 +19,7 @@
 	"VERBOSE": false,
 	"COLOR_OUTPUT": false,
 	"MAX_FILE_SIZE": 10485760,
-	"IGNORE_LIST": ".DS_Store,Thumbs.db"
+	"IGNORE_LIST": ".DS_Store,Thumbs.db",
+	"USE_EMOJIS": false,
+	"RESPECT_GITIGNORE": false
 }
