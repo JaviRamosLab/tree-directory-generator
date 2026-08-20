@@ -1,8 +1,12 @@
 {
   "name": "directory-tree-generator",
   "version": "1.0.0",
-  "description": "A utility to generate visual representations of directory structures",
+  "description": "A utility to generate visual representations of directory structures as filetipes (.TREE, .TXT, .JSON)",
   "main": "treeGenerator.js",
+  "bin": {
+    "treegen": "./src/treeGenerator.js",
+    "directory-tree-generator": "./src/treeGenerator.js"
+  },
   "scripts": {
     "start": "node treeGenerator.js",
     "test": "echo \"Error: no test specified\" && exit 1",
@@ -82,7 +86,8 @@
   "dependencies": {
     "minimatch": "^5.1.0",
     "dotenv": "^16.4.5",
-    "minimist": "^1.2.8"
+    "minimist": "^1.2.8",
+    "gitignore-parser": "^0.0.2"
   },
   "devDependencies": {
     "@biomejs/biome": "2.5.7",

@@ -25,15 +25,27 @@ try {
 	process.exit(1);
 }
 
+// Try to load gitignore-parser to handle .gitignore files
+let gitignoreParser;
+try {
+	gitignoreParser = require("gitignore-parser");
+} catch (error) {
+	console.warn("gitignore-parser not found. Install with: npm install gitignore-parser");
+	console.warn("Will not respect .gitignore rules.");
+	gitignoreParser = null;
+}
+
 // Parse command line arguments using minimist
 const args = minimist(process.argv.slice(2), {
 	string: ["_", "output-file", "exclude", "format", "output-path", "extensions", "exclude-patterns", "tab", "branch", "last-branch", "ignore"],
-	boolean: ["help", "version", "dir-only", "hidden", "size", "permissions", "modified", "subfolder", "verbose", "color"],
+	boolean: ["help", "version", "dir-only", "hidden", "size", "permissions", "modified", "subfolder", "verbose", "color", "use-emojis", "gitignore"],
 	alias: {
 		h: "help",
 		v: "version",
 		d: "dir-only",
 		o: "output-file",
+		e: "use-emojis",
+		g: "gitignore",
 	},
 	default: {
 		// _: ["."], // default input directory
@@ -78,6 +90,8 @@ Options:
   --branch                String for non-terminal items (default: ├── )
   --last-branch           String for terminal items (default: └── )
   --ignore                Additional files to ignore (default: .DS_Store,Thumbs.db)
+  --use-emojis            Use emoji icons for folders and files (default: false)
+  --gitignore             Respect rules in .gitignore file (default: false)
 
 Examples:
   node treeGenerator.js                    # Generate tree for current directory
@@ -86,6 +100,8 @@ Examples:
   node treeGenerator.js -o mytree.txt      # Save output to specific file
   node treeGenerator.js --max-depth 5      # Limit tree depth to 5 levels
   node treeGenerator.js --size --hidden    # Show file sizes and hidden files
+  node treeGenerator.js --use-emojis       # Use emoji icons for folders and files
+  node treeGenerator.js --gitignore        # Respect .gitignore rules
 	`);
 	process.exit(0);
 }
@@ -108,14 +124,38 @@ function getArrayValue(argValue, envValue, configValue, defaultValue) {
  * Check if a file should be excluded based on patterns
  */
 function isExcludedFile(fileName, excludeFiles) {
-	return excludeFiles.some((pattern) => minimatch(fileName, pattern));
+	// First check standard exclude patterns
+	if (excludeFiles.some((pattern) => minimatch(fileName, pattern))) {
+		return true;
+	}
+	
+	// Then check .gitignore if enabled
+	if (RESPECT_GITIGNORE && gitIgnoreRules) {
+		// Convert fileName to a path relative to the directory containing .gitignore
+		const relativePath = fileName;
+		return gitIgnoreRules.denies(relativePath);
+	}
+	
+	return false;
 }
 
 /**
  * Check if a folder should be excluded
  */
 function isExcludedFolder(folderName, excludeFolders) {
-	return excludeFolders.includes(folderName);
+	// First check standard exclude patterns
+	if (excludeFolders.includes(folderName)) {
+		return true;
+	}
+	
+	// Then check .gitignore if enabled
+	if (RESPECT_GITIGNORE && gitIgnoreRules) {
+		// Convert folderName to a path relative to the directory containing .gitignore
+		const relativePath = folderName;
+		return gitIgnoreRules.denies(relativePath);
+	}
+	
+	return false;
 }
 
 /**
@@ -202,6 +242,47 @@ const SHOW_HIDDEN = args.hidden || (process.env.SHOW_HIDDEN ? process.env.SHOW_H
 const SHOW_SIZE = args.size || (process.env.SHOW_SIZE ? process.env.SHOW_SIZE === "true" : config.SHOW_SIZE) || false;
 const SHOW_PERMISSIONS = args.permissions || (process.env.SHOW_PERMISSIONS ? process.env.SHOW_PERMISSIONS === "true" : config.SHOW_PERMISSIONS) || false;
 const SHOW_LAST_MODIFIED = args.modified || (process.env.SHOW_LAST_MODIFIED ? process.env.SHOW_LAST_MODIFIED === "true" : config.SHOW_LAST_MODIFIED) || false;
+const USE_EMOJIS = args["use-emojis"] || (process.env.USE_EMOJIS ? process.env.USE_EMOJIS === "true" : config.USE_EMOJIS) || false;
+const RESPECT_GITIGNORE = args["gitignore"] || (process.env.RESPECT_GITIGNORE ? process.env.RESPECT_GITIGNORE === "true" : config.RESPECT_GITIGNORE) || false;
+
+// Load .gitignore rules if the option is enabled
+let gitIgnoreRules = null;
+if (RESPECT_GITIGNORE && gitignoreParser) {
+	try {
+		// Look for .gitignore in the input directory and parent directories
+		const gitIgnorePath = findGitignore(INPUT_DIR);
+		if (gitIgnorePath) {
+			const gitIgnoreContent = fs.readFileSync(gitIgnorePath, 'utf8');
+			gitIgnoreRules = gitignoreParser.compile(gitIgnoreContent);
+		}
+	} catch (error) {
+		console.warn("Could not load .gitignore:", error.message);
+	}
+}
+
+/**
+ * Find .gitignore file in the given directory or parent directories
+ */
+function findGitignore(startDir) {
+	let currentDir = path.resolve(startDir);
+	
+	while (true) {
+		const gitignorePath = path.join(currentDir, '.gitignore');
+		if (fs.existsSync(gitignorePath)) {
+			return gitignorePath;
+		}
+		
+		const parentDir = path.dirname(currentDir);
+		if (parentDir === currentDir) {
+			// Reached the root directory
+			break;
+		}
+		currentDir = parentDir;
+	}
+	
+	return null;
+}
+
 const INCLUDE_EXTENSIONS = args.extensions || process.env.INCLUDE_EXTENSIONS || config.INCLUDE_EXTENSIONS || "";
 const EXCLUDE_PATTERNS = args["exclude-patterns"] || process.env.EXCLUDE_PATTERNS || config.EXCLUDE_PATTERNS || "";
 const OUTPUT_PATH = args["output-path"] || process.env.OUTPUT_PATH || config.OUTPUT_PATH || "./output";
@@ -226,44 +307,39 @@ if (VERBOSE === true && process.env.LOGGING === "true") {
 	console.log("----");
 	console.log("[ALL CONSTANTS:]");
 	console.log("----");
-	// console.log("✅ FORMAT=", FORMAT);
-	// console.log("args.format=", args.format);
-	// console.log("process.env.FORMAT=", process.env.FORMAT);
-	// console.log("config.FORMAT=", config.FORMAT);
-	console.log("----");
 	console.log("✅ OUTPUT_FILE");
 	console.log("OUTPUT_FILE=", OUTPUT_FILE);
-	console.log("args.OUTPUT_FILE=", args.OUTPUT_FILE);
+	console.log(`args["output-file"]=`, args["output-file"]);
 	console.log("process.env.OUTPUT_FILE=", process.env.OUTPUT_FILE);
 	console.log("config.OUTPUT_FILE=", config.OUTPUT_FILE);
 	console.log("----");
 	console.log("✅ TAB");
 	console.log("TAB=", TAB);
-	console.log("args.TAB=", args.TAB);
+	console.log("args.tab=", args.tab);
 	console.log("process.env.TAB=", process.env.TAB);
 	console.log("config.TAB=", config.TAB);
 	console.log("----");
 	console.log("✅ BRANCH");
 	console.log("BRANCH=", BRANCH);
-	console.log("args.BRANCH=", args.BRANCH);
+	console.log("args.branch=", args.branch);
 	console.log("process.env.BRANCH=", process.env.BRANCH);
 	console.log("config.BRANCH=", config.BRANCH);
 	console.log("----");
 	console.log("✅ LAST_BRANCH");
 	console.log("LAST_BRANCH=", LAST_BRANCH);
-	console.log("args.LAST_BRANCH=", args.LAST_BRANCH);
+	console.log(`args["last-branch"]=`, args["last-branch"]);
 	console.log("process.env.LAST_BRANCH=", process.env.LAST_BRANCH);
 	console.log("config.LAST_BRANCH=", config.LAST_BRANCH);
 	console.log("----");
 	console.log("✅ EXCLUDE_FOLDERS");
 	console.log("EXCLUDE_FOLDERS=", EXCLUDE_FOLDERS);
-	console.log("args.EXCLUDE_FOLDERS=", args.EXCLUDE_FOLDERS);
+	console.log("args.exclude=", args.exclude);
 	console.log("process.env.EXCLUDE_FOLDERS=", process.env.EXCLUDE_FOLDERS);
 	console.log("config.EXCLUDE_FOLDERS=", config.EXCLUDE_FOLDERS);
 	console.log("----");
 	console.log("✅ EXCLUDE_FILES");
 	console.log("EXCLUDE_FILES=", EXCLUDE_FILES);
-	console.log("args.EXCLUDE_FILES=", args.EXCLUDE_FILES);
+	console.log("args.ignore=", args.ignore);
 	console.log("process.env.EXCLUDE_FILES=", process.env.EXCLUDE_FILES);
 	console.log("config.EXCLUDE_FILES=", config.EXCLUDE_FILES);
 	console.log("----");
@@ -281,81 +357,114 @@ if (VERBOSE === true && process.env.LOGGING === "true") {
 	console.log("----");
 	console.log("✅ MAX_DEPTH");
 	console.log("MAX_DEPTH=", MAX_DEPTH);
-	console.log("args.MAX_DEPTH=", args.MAX_DEPTH);
+	console.log(`args["max-depth"]=`, args["max-depth"]);
 	console.log("process.env.MAX_DEPTH=", process.env.MAX_DEPTH);
 	console.log("config.MAX_DEPTH=", config.MAX_DEPTH);
 	console.log("----");
 	console.log("✅ SHOW_HIDDEN");
 	console.log("SHOW_HIDDEN=", SHOW_HIDDEN);
-	console.log("args.SHOW_HIDDEN=", args.SHOW_HIDDEN);
+	console.log("args.hidden=", args.hidden);
 	console.log("process.env.SHOW_HIDDEN=", process.env.SHOW_HIDDEN);
 	console.log("config.SHOW_HIDDEN=", config.SHOW_HIDDEN);
 	console.log("----");
 	console.log("✅ SHOW_SIZE");
 	console.log("SHOW_SIZE=", SHOW_SIZE);
-	console.log("args.SHOW_SIZE=", args.SHOW_SIZE);
+	console.log("args.size=", args.size);
 	console.log("process.env.SHOW_SIZE=", process.env.SHOW_SIZE);
 	console.log("config.SHOW_SIZE=", config.SHOW_SIZE);
 	console.log("----");
 	console.log("✅ SHOW_PERMISSIONS");
 	console.log("SHOW_PERMISSIONS=", SHOW_PERMISSIONS);
-	console.log("args.SHOW_PERMISSIONS=", args.SHOW_PERMISSIONS);
+	console.log("args.permissions=", args.permissions);
 	console.log("process.env.SHOW_PERMISSIONS=", process.env.SHOW_PERMISSIONS);
 	console.log("config.SHOW_PERMISSIONS=", config.SHOW_PERMISSIONS);
 	console.log("----");
 	console.log("✅ SHOW_LAST_MODIFIED");
 	console.log("SHOW_LAST_MODIFIED=", SHOW_LAST_MODIFIED);
-	console.log("args.SHOW_LAST_MODIFIED=", args.SHOW_LAST_MODIFIED);
+	console.log("args.modified=", args.modified);
 	console.log("process.env.SHOW_LAST_MODIFIED=", process.env.SHOW_LAST_MODIFIED);
 	console.log("config.SHOW_LAST_MODIFIED=", config.SHOW_LAST_MODIFIED);
 	console.log("----");
 	console.log("✅ INCLUDE_EXTENSIONS");
 	console.log("INCLUDE_EXTENSIONS=", INCLUDE_EXTENSIONS);
-	console.log("args.INCLUDE_EXTENSIONS=", args.INCLUDE_EXTENSIONS);
+	console.log("args.extensions=", args.extensions);
 	console.log("process.env.INCLUDE_EXTENSIONS=", process.env.INCLUDE_EXTENSIONS);
 	console.log("config.INCLUDE_EXTENSIONS=", config.INCLUDE_EXTENSIONS);
 	console.log("----");
 	console.log("✅ EXCLUDE_PATTERNS");
 	console.log("EXCLUDE_PATTERNS=", EXCLUDE_PATTERNS);
-	console.log("args.EXCLUDE_PATTERNS=", args.EXCLUDE_PATTERNS);
+	console.log(`args["exclude-patterns"]=`, args["exclude-patterns"]);
 	console.log("process.env.EXCLUDE_PATTERNS=", process.env.EXCLUDE_PATTERNS);
 	console.log("config.EXCLUDE_PATTERNS=", config.EXCLUDE_PATTERNS);
 	console.log("----");
 	console.log("✅ OUTPUT_PATH");
 	console.log("OUTPUT_PATH=", OUTPUT_PATH);
-	console.log("args.OUTPUT_PATH=", args.OUTPUT_PATH);
+	console.log("args.output-path=", args.output-path);
 	console.log("process.env.OUTPUT_PATH=", process.env.OUTPUT_PATH);
 	console.log("config.OUTPUT_PATH=", config.OUTPUT_PATH);
 	console.log("----");
 	console.log("✅ CREATE_SUBFOLDER");
 	console.log("CREATE_SUBFOLDER=", CREATE_SUBFOLDER);
-	console.log("args.CREATE_SUBFOLDER=", args.CREATE_SUBFOLDER);
+	console.log("args.subfolder=", args.subfolder);
 	console.log("process.env.CREATE_SUBFOLDER=", process.env.CREATE_SUBFOLDER);
 	console.log("config.CREATE_SUBFOLDER=", config.CREATE_SUBFOLDER);
 	console.log("----");
 	console.log("✅ VERBOSE");
 	console.log("VERBOSE=", VERBOSE);
-	console.log("args.VERBOSE=", args.VERBOSE);
+	console.log("args.verbose=", args.verbose);
 	console.log("process.env.VERBOSE=", process.env.VERBOSE);
 	console.log("config.VERBOSE=", config.VERBOSE);
 	console.log("----");
 	console.log("✅ COLOR_OUTPUT");
 	console.log("COLOR_OUTPUT=", COLOR_OUTPUT);
-	console.log("args.COLOR_OUTPUT=", args.COLOR_OUTPUT);
+	console.log("args.color=", args.color);
 	console.log("process.env.COLOR_OUTPUT=", process.env.COLOR_OUTPUT);
 	console.log("config.COLOR_OUTPUT=", config.COLOR_OUTPUT);
 	console.log("----");
 	console.log("✅ MAX_FILE_SIZE");
 	console.log("MAX_FILE_SIZE=", MAX_FILE_SIZE);
-	console.log("args.MAX_FILE_SIZE=", args.MAX_FILE_SIZE);
+	console.log(`args["max-file-size"]=`, args["max-file-size"]);
 	console.log("process.env.MAX_FILE_SIZE=", process.env.MAX_FILE_SIZE);
 	console.log("config.MAX_FILE_SIZE=", config.MAX_FILE_SIZE);
 	console.log("----");
 	console.log("✅ IGNORE_LIST");
 	console.log("IGNORE_LIST=", IGNORE_LIST);
-	console.log("args.IGNORE_LIST=", args.IGNORE_LIST);
+	console.log("args.ignore=", args.ignore);
 	console.log("process.env.IGNORE_LIST=", process.env.IGNORE_LIST);
 	console.log("config.IGNORE_LIST=", config.IGNORE_LIST);
+	console.log("----");
+	console.log("✅ USE_EMOJIS");
+	console.log("USE_EMOJIS=", USE_EMOJIS);
+	console.log("args.use-emojis=", args["use-emojis"]);
+	console.log("process.env.USE_EMOJIS=", process.env.USE_EMOJIS);
+	console.log("config.USE_EMOJIS=", config.USE_EMOJIS);
+	console.log("----");
+	console.log("✅ RESPECT_GITIGNORE");
+	console.log("RESPECT_GITIGNORE=", RESPECT_GITIGNORE);
+	console.log("args.gitignore=", args["gitignore"]);
+	console.log("process.env.RESPECT_GITIGNORE=", process.env.RESPECT_GITIGNORE);
+	console.log("config.RESPECT_GITIGNORE=", config.RESPECT_GITIGNORE);
+	console.log("gitIgnoreRules loaded=", !!gitIgnoreRules);
+	console.log("----");
+	// console.log("----");
+	// console.log("----");
+	// console.log("✅ VERSION");
+	// console.log("args.version=", args.version);
+	// console.log("----");
+	// console.log("✅ HELP");
+	// console.log("args.help=", args.help);
+	// console.log("----");
+	// console.log("✅ DIRECTORY_ONLY");
+	// console.log("args.dir-only=", args.dir-only);
+	// console.log("----");
+	// console.log("✅ EXCLUDE_PATTERNS");
+	// console.log("args.exclude-patterns =", args.exclude-patterns );
+	// console.log("----");
+	// console.log("✅ INPUT_DIR");
+	// console.log("args.INPUT_DIR=", args.INPUT_DIR);
+	// console.log("process.env.INPUT_DIR=", process.env.INPUT_DIR);
+	// console.log("config.INPUT_DIR=", config.INPUT_DIR);
+	console.log("----");
 	console.log("----");
 }
 
@@ -487,14 +596,16 @@ function processFolder(folderPath, prefix, excludeFolders, excludeFiles = EXCLUD
 
 		if (stat.isDirectory()) {
 			// Process subfolder
-			result += `${prefix}${branchChar}${item}${additionalInfo}\n`;
+			const folderPrefix = USE_EMOJIS ? "📁 " : "";
+			result += `${prefix}${branchChar}${folderPrefix}${item}${additionalInfo}\n`;
 			// For subfolder content, adjust prefix appropriately
 			// If this is not the last item, use vertical bar prefix; otherwise use spaces
 			const subPrefix = isLast ? prefix + "" : prefix + TAB; // Use vertical bars for non-last items, spaces for last
 			result += processFolder(itemPath, subPrefix, excludeFolders, excludeFiles, false, depth + 1);
 		} else {
 			// Process file
-			result += `${prefix}${branchChar}${item}${additionalInfo}\n`;
+			const filePrefix = USE_EMOJIS ? "📄 " : "";
+			result += `${prefix}${branchChar}${filePrefix}${item}${additionalInfo}\n`;
 		}
 	}
 
@@ -536,7 +647,11 @@ function generateJsonStructure(folderPath, excludeFolders, excludeFiles = EXCLUD
 	const stat = fs.statSync(folderPath);
 
 	if (!stat.isDirectory()) {
-		return { name: folderName, type: "file" };
+		const fileInfo = { name: folderName, type: "file" };
+		if (USE_EMOJIS) {
+			fileInfo.emoji = "📄";
+		}
+		return fileInfo;
 	}
 
 	const items = fs.readdirSync(folderPath);
@@ -545,6 +660,10 @@ function generateJsonStructure(folderPath, excludeFolders, excludeFiles = EXCLUD
 		type: "folder",
 		children: [],
 	};
+	
+	if (USE_EMOJIS) {
+		structure.emoji = "📁";
+	}
 
 	// Separate files and folders to put folders first
 	const folders = [];
@@ -573,10 +692,16 @@ function generateJsonStructure(folderPath, excludeFolders, excludeFiles = EXCLUD
 
 	// Then add files
 	for (const file of files) {
-		structure.children.push({
+		const fileInfo = {
 			name: file,
 			type: "file",
-		});
+		};
+		
+		if (USE_EMOJIS) {
+			fileInfo.emoji = "📄";
+		}
+		
+		structure.children.push(fileInfo);
 	}
 
 	return structure;
@@ -628,7 +753,18 @@ function main() {
 
 	// Determine the output file name based on format
 	let fileName = OUTPUT_FILE;
-	if (!fileName.endsWith(`.${FORMAT}`)) {
+	if (FORMAT.toLowerCase() === 'json') {
+		// For JSON format, use .tree.json as subformat
+		if (!fileName.endsWith('.tree.json')) {
+			if (fileName.endsWith('.json')) {
+				// If already ends with .json, replace it with .tree.json
+				fileName = fileName.slice(0, -5) + '.tree.json';
+			} else {
+				// Otherwise, append .tree.json
+				fileName += '.tree.json';
+			}
+		}
+	} else if (!fileName.endsWith(`.${FORMAT}`)) {
 		fileName += `.${FORMAT}`;
 	}
 
@@ -684,6 +820,8 @@ module.exports = {
 	SHOW_SIZE,
 	SHOW_PERMISSIONS,
 	SHOW_LAST_MODIFIED,
+	USE_EMOJIS,
+	RESPECT_GITIGNORE,
 	INCLUDE_EXTENSIONS,
 	EXCLUDE_PATTERNS,
 	OUTPUT_PATH,
