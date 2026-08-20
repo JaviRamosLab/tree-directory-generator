@@ -85,7 +85,7 @@
   },
   "dependencies": {
     "minimatch": "^5.1.0",
-    "dotenv": "^16.4.5",
+    "dotenv": "^17.4.2",
     "minimist": "^1.2.8",
     "gitignore-parser": "^0.0.2"
   },
