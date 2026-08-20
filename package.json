@@ -90,7 +90,7 @@
     "gitignore-parser": "^0.0.2"
   },
   "devDependencies": {
-    "@biomejs/biome": "2.5.7",
+    "@biomejs/biome": "2.5.8",
     "rimraf": "^5.0.0",
     "concurrently": "^8.0.0",
     "@semantic-release/github": "^10.0.0",
