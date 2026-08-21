@@ -1,0 +1,17 @@
+{
+  "name": "test",
+  "version": "1.0.0",
+  "description": "",
+  "main": "basic.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node example-1.js"
+  },
+  "keywords": [],
+  "author": "Javier Ramos Nistal <co2mm.esperanto@gmail.com> (https://javiramoslab.com/)",
+  "license": "MIT",
+  "type": "commonjs",
+  "dependencies": {
+    "tree-directory-generator": "file:../dist/tree-directory-generator-1.0.0.tgz"
+  }
+}
