@@ -17,13 +17,13 @@
     "tree-view",
     "file-system-traversal"
   ],
-  "homepage": "https://github.com/JaviRamosLab/tree-directory-generator#readme",
+  "homepage": "https://github.com/javiramoslab/tree-directory-generator#readme",
   "bugs": {
-    "url": "https://github.com/JaviRamosLab/tree-directory-generator/issues"
+    "url": "https://github.com/javiramoslab/tree-directory-generator/issues"
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/JaviRamosLab/tree-directory-generator.git"
+    "url": "git+https://github.com/javiramoslab/tree-directory-generator.git"
   },
   "funding": [
     {
@@ -64,6 +64,9 @@
   "main": "src/treeGenerator.js",
   "files": [
     "src/",
+	"config/config.json",
+	"config/config.js",
+	"package.json",
     "README.md",
     "LICENSE"
   ],
@@ -88,7 +91,7 @@
     "release:dry-run": "semantic-release --dry-run",
     "security": "npm audit --audit-level high",
     "security:fix": "npm audit fix",
-    "start": "node --watch app.js",
+    "start": "node src/treeGenerator.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "config": {

@@ -973,7 +973,8 @@ async function generateTreeStructure(options = {}) {
 		ignoreList = IGNORE_LIST,
 		tab = TAB,
 		branch = BRANCH,
-		lastBranch = LAST_BRANCH
+		lastBranch = LAST_BRANCH,
+		generateFile = true
 	} = options;
 
 	// Use the provided folderPath or default to INPUT_DIR
@@ -1224,33 +1225,37 @@ async function generateTreeStructure(options = {}) {
 		lastBranch
 	});
 
-	// Determine the output file name based on format
-	let fileName = outputFile;
-	if (format.toLowerCase() === 'json') {
-		// For JSON format, use .tree.json as subformat
-		if (!fileName.endsWith('.tree.json')) {
-			if (fileName.endsWith('.json')) {
-				// If already ends with .json, replace it with .tree.json
-				fileName = fileName.slice(0, -5) + '.tree.json';
-			} else {
-				// Otherwise, append .tree.json
-				fileName += '.tree.json';
+	// Only create the file if generateFile is true
+	let fileName = null;
+	if (generateFile) {
+		// Determine the output file name based on format
+		fileName = outputFile;
+		if (format.toLowerCase() === 'json') {
+			// For JSON format, use .tree.json as subformat
+			if (!fileName.endsWith('.tree.json')) {
+				if (fileName.endsWith('.json')) {
+					// If already ends with .json, replace it with .tree.json
+					fileName = fileName.slice(0, -5) + '.tree.json';
+				} else {
+					// Otherwise, append .tree.json
+					fileName += '.tree.json';
+				}
 			}
+		} else if (!fileName.endsWith(`.${format}`)) {
+			fileName += `.${format}`;
 		}
-	} else if (!fileName.endsWith(`.${format}`)) {
-		fileName += `.${format}`;
-	}
 
-	// Create output directory if needed
-	if (createSubfolder) {
-		if (!fs.existsSync(outputPath)) {
-			fs.mkdirSync(outputPath, { recursive: true });
+		// Create output directory if needed
+		if (createSubfolder) {
+			if (!fs.existsSync(outputPath)) {
+				fs.mkdirSync(outputPath, { recursive: true });
+			}
+			fileName = path.join(outputPath, fileName);
 		}
-		fileName = path.join(outputPath, fileName);
-	}
 
-	// Write the output to the file
-	fs.writeFileSync(fileName, output);
+		// Write the output to the file
+		fs.writeFileSync(fileName, output);
+	}
 
 	// Count items for display purposes
 	const counts = countItems(rootDir, combinedExcludeFolders, resolvedExcludeFiles);
@@ -1309,8 +1314,10 @@ async function generateTreeStructure(options = {}) {
 
 	return {
 		success: true,
-		message: `Directory structure saved to ${fileName}`,
-		outputPath: fileName,
+		...(generateFile && { message: `Directory structure saved to ${fileName}` }),
+		...(!generateFile && { message: `Directory structure generated in memory` }),
+		...(generateFile && { outputPath: fileName }),
+		output: output, // Always include the output content regardless of generateFile setting
 		metadata: jsonStructureResult.metadata,
 		tree: jsonStructureResult.tree,
 		fullJsonStructure: jsonStructureResult,
@@ -1338,7 +1345,8 @@ async function generateTreeStructure(options = {}) {
 			useEmojis,
 			respectGitignore,
 			headers,
-			maxFileSize
+			maxFileSize,
+			generateFile
 		}
 	};
 }
