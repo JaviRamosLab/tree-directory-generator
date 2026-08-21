@@ -3,6 +3,7 @@
 const fs = require("fs");
 const path = require("path");
 const minimist = require("minimist");
+const packageJson = require("../package.json");
 
 // Load environment variables
 require("dotenv").config();
@@ -75,7 +76,7 @@ const HEADERS = headersFlagProvided ? Boolean(args.headers) :
 
 // Show version and exit if --version flag is provided
 if (args.version) {
-	const packageJson = require("../package.json");
+	// const packageJson = require("../package.json");
 	console.log(`${packageJson.name}/${packageJson.version} ${process.platform}-${process.arch} node-${process.version}`);
 	process.exit(0);
 }
@@ -145,7 +146,14 @@ function getArrayValue(argValue, envValue, configValue, defaultValue) {
  */
 function isExcludedFile(fileName, excludeFiles) {
 	// First check standard exclude patterns
-	if (excludeFiles.some((pattern) => minimatch(fileName, pattern))) {
+	if (excludeFiles && Array.isArray(excludeFiles) && excludeFiles.some((pattern) => {
+		if (typeof minimatch === 'function' && typeof pattern === 'string') {
+			return minimatch(fileName, pattern);
+		} else {
+			// Fallback to simple string comparison if minimatch is not available
+			return fileName === pattern || fileName.endsWith(pattern.replace(/^\*/, ''));
+		}
+	})) {
 		return true;
 	}
 	
@@ -201,7 +209,14 @@ function isIncludedExtension(fileName) {
 function matchesExcludePattern(filePath) {
 	if (!EXCLUDE_PATTERNS) return false;
 	const patterns = EXCLUDE_PATTERNS.split(",");
-	return patterns.some((pattern) => minimatch(filePath, pattern));
+	return patterns.some((pattern) => {
+		if (typeof minimatch === 'function' && typeof pattern === 'string') {
+			return minimatch(filePath, pattern.trim());
+		} else {
+			// Fallback to simple string comparison if minimatch is not available
+			return filePath.includes(pattern.trim());
+		}
+	});
 }
 
 /**
@@ -668,7 +683,7 @@ function generateTxtStructure(rootDir, excludeFolders, excludeFiles = EXCLUDE_FI
 	const totalSize = counts.totalSize || 0;
 
 	// Load package.json for metadata
-	const packageJson = require("../package.json");
+	// const packageJson = require("../package.json");
 
 	let result = "";
 	// if  (HEADERS==="true") {
@@ -780,7 +795,7 @@ function formatOutput(rootDir, format, excludeFolders, excludeFiles = EXCLUDE_FI
 	switch (format.toLowerCase()) {
 		case "json": {
 			if (HEADERS) {
-				const packageJson = require("../package.json");
+				// const packageJson = require("../package.json");
 				const counts = countItems(rootDir, excludeFolders, excludeFiles);
 				
 				const jsonStructure = {
@@ -928,12 +943,414 @@ if (require.main === module) {
 	main();
 }
 
+/**
+ * Main function to run the tree generator - exported for NPM package usage
+ */
+async function generateTreeStructure(options = {}) {
+	// Extract options with defaults based on existing constants
+	const {
+		folderPath = INPUT_DIR,
+		outputFile = OUTPUT_FILE,
+		format = FORMAT,
+		maxDepth = MAX_DEPTH,
+		showHidden = SHOW_HIDDEN,
+		showSize = SHOW_SIZE,
+		showPermissions = SHOW_PERMISSIONS,
+		showLastModified = SHOW_LAST_MODIFIED,
+		dirOnly = false, // DIR_ONLY_MODE is determined differently
+		excludeFolders = EXCLUDE_FOLDERS,
+		excludeFiles = EXCLUDE_FILES,
+		includeExtensions = INCLUDE_EXTENSIONS,
+		excludePatterns = EXCLUDE_PATTERNS,
+		outputPath = OUTPUT_PATH,
+		createSubfolder = CREATE_SUBFOLDER,
+		verbose = VERBOSE,
+		color = COLOR_OUTPUT,
+		useEmojis = USE_EMOJIS,
+		respectGitignore = RESPECT_GITIGNORE,
+		headers = HEADERS,
+		maxFileSize = MAX_FILE_SIZE,
+		ignoreList = IGNORE_LIST,
+		tab = TAB,
+		branch = BRANCH,
+		lastBranch = LAST_BRANCH
+	} = options;
+
+	// Use the provided folderPath or default to INPUT_DIR
+	let rootDir = folderPath;
+
+	// If rootDir is '.', resolve to the actual current working directory name
+	if (rootDir === ".") {
+		rootDir = process.cwd();
+	} else if (rootDir === "..") {
+		rootDir = path.dirname(process.cwd());
+	}
+
+	// Validate input directory
+	if (!fs.existsSync(rootDir)) {
+		throw new Error("Directory does not exist.");
+	}
+
+	// Combine excludeFolders and ignoreList
+	const combinedExcludeFolders = [...new Set([...excludeFolders, ...ignoreList])];
+	const resolvedExcludeFiles = dirOnly
+		? ["*"]
+		: excludeFiles;
+
+	// Create a version of formatOutput that accepts all parameters
+	const formatOutputWithParams = (rootDir, format, excludeFolders, excludeFiles, options) => {
+		switch (format.toLowerCase()) {
+			case "json": {
+				if (options.headers) {
+					const counts = countItems(rootDir, excludeFolders, excludeFiles);
+					
+					const jsonStructure = {
+						metadata: {
+							name: packageJson.name,
+							version: packageJson.version,
+							description: packageJson.description,
+							author: packageJson.author,
+							license: packageJson.license,
+							url: "https://javiramoslab.com/tree-directory-generator/",
+							docs: "https://javiramoslab.com/tree-directory-generator/docs",
+							schema: "https://javiramoslab.com/tree-directory-generator/schema",
+							generated: new Date().toISOString(),
+							generator: {
+								name: packageJson.name,
+								version: packageJson.version,
+								platform: process.platform,
+								nodeVersion: process.version
+							},
+							root: path.resolve(rootDir),
+							stats: {
+								folders: counts.folderCount,
+								files: counts.fileCount,
+								size: counts.totalSize,
+								sizeFormatted: formatBytes(counts.totalSize),
+								outputFile: `${options.outputFile}.${format}`,
+								format: format.toUpperCase(),
+								maxDepth: options.maxDepth,
+								filters: options.dirOnly ? 'directories only' : 'all files'
+							},
+							config: {
+								showHidden: options.showHidden,
+								showSize: options.showSize,
+								showPermissions: options.showPermissions,
+								showLastModified: options.showLastModified,
+								useEmojis: options.useEmojis,
+								respectGitignore: options.respectGitignore,
+								includeExtensions: options.includeExtensions,
+								excludeFolders: excludeFolders,
+								excludePatterns: options.excludePatterns,
+								dirOnlyMode: options.dirOnly,
+								maxFileSize: options.maxFileSize
+							}
+						},
+						tree: generateJsonStructure(rootDir, excludeFolders, excludeFiles, true)
+					};
+					return JSON.stringify(jsonStructure, null, 2);
+				} else {
+					// Return just the tree structure without metadata when headers are disabled
+					const jsonStructure = generateJsonStructure(rootDir, excludeFolders, excludeFiles, true);
+					return JSON.stringify(jsonStructure, null, 2);
+				}
+			}
+
+			case "tree":
+			case "txt":
+			default:
+				// For text format, we need a version that accepts all parameters
+				const generateTxtStructureWithParams = (rootDir, excludeFolders, excludeFiles, options) => {
+					// Count items first
+					const counts = countItems(rootDir, excludeFolders, excludeFiles);
+					const folderCount = counts.folderCount;
+					const fileCount = counts.fileCount;
+					const totalSize = counts.totalSize || 0;
+
+					let result = "";
+					if (options.headers) {
+						result += "============================================\n";
+						result += "Directory Tree Generator\n";
+						result += "============================================\n";
+						result += `Version     : ${packageJson.version}\n`;
+						result += `Generated   : ${new Date().toISOString()}\n`;
+						result += `Root        : ${path.resolve(rootDir)}\n`;
+						result += `URL         : https://javiramoslab.com/tree-directory-generator/\n`;
+						result += `Docs        : https://javiramoslab.com/tree-directory-generator/docs\n`;
+						result += `Schema      : https://javiramoslab.com/tree-directory-generator/schema\n`;
+						result += "============================================\n";
+						result += `Folders     : ${folderCount}\n`;
+						result += `Files       : ${fileCount}\n`;
+						result += `Size        : ${formatBytes(totalSize)}\n`;
+						result += `Output file : ${options.outputFile}.${format}\n`;
+						result += `Format      : ${format.toUpperCase()}\n`;
+						result += `Max Depth   : ${options.maxDepth}\n`;
+						result += `Filters     : ${options.dirOnly ? 'directories only' : 'all files'}\n`;
+						if (options.includeExtensions) result += `Extensions  : ${options.includeExtensions}\n`;
+						if (excludeFolders.length > 0) result += `Excluded    : ${excludeFolders.join(', ')}\n`;
+						result += "============================================\n\n";
+					}
+
+					// Add root folder name at the top
+					const rootFolderName = path.basename(rootDir);
+					result += `${rootFolderName}\n`;
+
+					// For processFolder, we need to pass the parameters
+					const processFolderWithParams = (folderPath, prefix, excludeFolders, excludeFiles, isRoot = false, depth = 0) => {
+						if (depth > options.maxDepth) return "";
+
+						let result = "";
+
+						// Read the contents of the folder
+						const items = fs.readdirSync(folderPath);
+
+						let files = [];
+						let subFolders = [];
+
+						// Separate files and folders
+						for (const item of items) {
+							// Skip hidden files if SHOW_HIDDEN is false
+							if (!options.showHidden && isHiddenFile(item)) {
+								continue;
+							}
+
+							const itemPath = path.join(folderPath, item);
+							const stat = fs.statSync(itemPath);
+
+							if (stat.isDirectory()) {
+								if (!isExcludedFolder(item, excludeFolders)) {
+									subFolders.push(item);
+								}
+							} else {
+								// Skip files if in directory-only mode
+								if (options.dirOnly) {
+									continue;
+								}
+
+								// Apply all filters for files
+								if (!isExcludedFile(item, excludeFiles) && isIncludedExtension(item) && !matchesExcludePattern(itemPath)) {
+									// Check file size if MAX_FILE_SIZE is set
+									if (options.maxFileSize > 0) {
+										const fileSize = getFileSize(itemPath);
+										if (fileSize <= options.maxFileSize) {
+											files.push(item);
+										}
+									} else {
+										files.push(item);
+									}
+								}
+							}
+						}
+
+						// Combine folders and files, with folders first
+						const allItems = [...subFolders, ...files];
+
+						// Process all items
+						for (let i = 0; i < allItems.length; i++) {
+							const item = allItems[i];
+							const isLast = i === allItems.length - 1;
+							const itemPath = path.join(folderPath, item);
+							const stat = fs.statSync(itemPath);
+
+							// Determine if this is the last item to use the appropriate branch character
+							const branchChar = isLast ? options.lastBranch : options.branch;
+
+							// Prepare additional information based on configuration settings
+							let additionalInfo = "";
+							if (stat.isFile()) {
+								if (options.showSize) {
+									const size = getFileSize(itemPath);
+									additionalInfo += ` [${size} bytes]`;
+								}
+								if (options.showPermissions) {
+									const perms = getFilePermissions(itemPath);
+									additionalInfo += ` [${perms}]`;
+								}
+								if (options.showLastModified) {
+									const modDate = getLastModified(itemPath);
+									additionalInfo += ` [${modDate}]`;
+								}
+							}
+
+							if (stat.isDirectory()) {
+								// Process subfolder
+								const folderPrefix = options.useEmojis ? "📁 " : "";
+								result += `${prefix}${branchChar}${folderPrefix}${item}${additionalInfo}\n`;
+								// For subfolder content, adjust prefix appropriately
+								// If this is not the last item, use vertical bar prefix; otherwise use spaces
+								const subPrefix = isLast ? prefix + "" : prefix + options.tab; // Use vertical bars for non-last items, spaces for last
+								result += processFolderWithParams(itemPath, subPrefix, excludeFolders, excludeFiles, false, depth + 1);
+							} else {
+								// Process file
+								const filePrefix = options.useEmojis ? "📄 " : "";
+								result += `${prefix}${branchChar}${filePrefix}${item}${additionalInfo}\n`;
+							}
+						}
+
+						return result;
+					};
+
+					result += processFolderWithParams(rootDir, "", excludeFolders, excludeFiles, true);
+
+					return result;
+				};
+
+				return generateTxtStructureWithParams(rootDir, excludeFolders, excludeFiles, options);
+		}
+	};
+
+	// Generate the output based on the specified format using our parameterized version
+	const output = formatOutputWithParams(rootDir, format, combinedExcludeFolders, resolvedExcludeFiles, {
+		outputFile,
+		format,
+		maxDepth,
+		showHidden,
+		showSize,
+		showPermissions,
+		showLastModified,
+		dirOnly,
+		includeExtensions,
+		excludePatterns,
+		outputPath,
+		createSubfolder,
+		verbose,
+		color,
+		useEmojis,
+		respectGitignore,
+		headers,
+		maxFileSize,
+		tab,
+		branch,
+		lastBranch
+	});
+
+	// Determine the output file name based on format
+	let fileName = outputFile;
+	if (format.toLowerCase() === 'json') {
+		// For JSON format, use .tree.json as subformat
+		if (!fileName.endsWith('.tree.json')) {
+			if (fileName.endsWith('.json')) {
+				// If already ends with .json, replace it with .tree.json
+				fileName = fileName.slice(0, -5) + '.tree.json';
+			} else {
+				// Otherwise, append .tree.json
+				fileName += '.tree.json';
+			}
+		}
+	} else if (!fileName.endsWith(`.${format}`)) {
+		fileName += `.${format}`;
+	}
+
+	// Create output directory if needed
+	if (createSubfolder) {
+		if (!fs.existsSync(outputPath)) {
+			fs.mkdirSync(outputPath, { recursive: true });
+		}
+		fileName = path.join(outputPath, fileName);
+	}
+
+	// Write the output to the file
+	fs.writeFileSync(fileName, output);
+
+	// Count items for display purposes
+	const counts = countItems(rootDir, combinedExcludeFolders, resolvedExcludeFiles);
+
+	// For JSON format, parse and return the full structure
+	let jsonStructureResult = null;
+	if (format.toLowerCase() === 'json') {
+		jsonStructureResult = JSON.parse(output);
+	} else {
+		// For non-JSON formats, create a simplified structure
+		jsonStructureResult = {
+			metadata: {
+				name: packageJson.name,
+				version: packageJson.version,
+				description: packageJson.description,
+				author: packageJson.author,
+				license: packageJson.license,
+				url: "https://javiramoslab.com/tree-directory-generator/",
+				docs: "https://javiramoslab.com/tree-directory-generator/docs",
+				schema: "https://javiramoslab.com/tree-directory-generator/schema",
+				generated: new Date().toISOString(),
+				generator: {
+					name: packageJson.name,
+					version: packageJson.version,
+					platform: process.platform,
+					nodeVersion: process.version
+				},
+				root: path.resolve(rootDir),
+				stats: {
+					folders: counts.folderCount,
+					files: counts.fileCount,
+					size: counts.totalSize,
+					sizeFormatted: formatBytes(counts.totalSize),
+					outputFile: `${outputFile}.${format}`,
+					format: format.toUpperCase(),
+					maxDepth: maxDepth,
+					filters: dirOnly ? 'directories only' : 'all files'
+				},
+				config: {
+					showHidden: showHidden,
+					showSize: showSize,
+					showPermissions: showPermissions,
+					showLastModified: showLastModified,
+					useEmojis: useEmojis,
+					respectGitignore: respectGitignore,
+					includeExtensions: includeExtensions,
+					excludeFolders: combinedExcludeFolders,
+					excludePatterns: excludePatterns,
+					dirOnlyMode: dirOnly,
+					maxFileSize: maxFileSize
+				}
+			},
+			tree: generateJsonStructure(rootDir, combinedExcludeFolders, resolvedExcludeFiles, true)
+		};
+	}
+
+	return {
+		success: true,
+		message: `Directory structure saved to ${fileName}`,
+		outputPath: fileName,
+		metadata: jsonStructureResult.metadata,
+		tree: jsonStructureResult.tree,
+		fullJsonStructure: jsonStructureResult,
+		stats: {
+			folders: counts.folderCount,
+			files: counts.fileCount,
+			size: counts.totalSize,
+			sizeFormatted: formatBytes(counts.totalSize)
+		},
+		options: {
+			folderPath: rootDir,
+			format,
+			maxDepth,
+			showHidden,
+			showSize,
+			showPermissions,
+			showLastModified,
+			dirOnly,
+			includeExtensions,
+			excludePatterns,
+			outputPath,
+			createSubfolder,
+			verbose,
+			color,
+			useEmojis,
+			respectGitignore,
+			headers,
+			maxFileSize
+		}
+	};
+}
+
 module.exports = {
+	generateTreeStructure,
 	processFolder,
 	generateTxtStructure,
 	generateJsonStructure,
 	formatOutput,
 	formatBytes,
+	countItems,
 	OUTPUT_FILE,
 	TAB,
 	BRANCH,
